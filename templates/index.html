@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold text-primary mb-3">Plataforma Médica TP2</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">Bem-vindo à plataforma de Processamento de Linguagem Natural. Selecione uma das opções abaixo para explorar o dicionário clínico ou pesquisar artigos científicos médicos com Inteligência Artificial.</p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-5">
+            <a href="/dicionario" class="btn btn-primary btn-lg px-4 gap-3 shadow-sm">📖 Explorar Dicionário</a>
+            <a href="/pesquisa" class="btn btn-outline-secondary btn-lg px-4 shadow-sm">🔎 Motor de Busca</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

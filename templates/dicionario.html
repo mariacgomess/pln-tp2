@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="card-title text-primary mb-0">📖 Gestão do Dicionário</h2>
+                    <button class="btn btn-success">+ Adicionar Novo Termo</button>
+                </div>
+                
+                <p class="text-muted text-center mb-3">Selecione uma letra para explorar os termos do dicionário unificado.</p>
+
+                <div class="mb-4 text-center">
+                    <div class="btn-group flex-wrap" role="group" aria-label="Alfabeto">
+                        {% for letra in alfabeto %}
+                            <a href="/dicionario?letra={{ letra }}" class="btn btn-sm {% if letra == letra_atual %}btn-primary{% else %}btn-outline-primary{% endif %} mb-1">
+                                {{ letra }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                    <table class="table table-hover table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Termo</th>
+                                <th>Domínios</th>
+                                <th>Definição (Resumo)</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entrada in termos %}
+                            <tr>
+                                <td><strong>{{ entrada.termo }}</strong></td>
+                                <td>
+                                    {% if entrada.dominios %}
+                                        {% for dominio in entrada.dominios %}
+                                            <span class="badge bg-secondary mb-1">{{ dominio }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if entrada.definicao %}
+                                        {{ entrada.definicao[:120] }}...
+                                    {% else %}
+                                        <span class="text-muted fst-italic">Sem definição</span>
+                                    {% endif %}
+                                </td>
+                                <td style="min-width: 150px;">
+                                    <button class="btn btn-sm btn-outline-primary">Editar</button>
+                                    <button class="btn btn-sm btn-outline-danger">Apagar</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Não existem termos a começar pela letra {{ letra_atual }}.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

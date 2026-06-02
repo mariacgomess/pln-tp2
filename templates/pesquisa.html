@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body text-center">
+                <h2 class="card-title text-primary mb-3">🔎 Motor de Busca (IR)</h2>
+                
+                <form method="POST" action="/pesquisa" class="d-flex justify-content-center mt-4 mb-2">
+                    <input type="text" name="query" class="form-control w-75 me-2" placeholder="Pesquise por uma doença em inglês (ex: anemia, glaucoma)..." value="{{ query }}" required>
+                    <button type="submit" class="btn btn-primary">Pesquisar</button>
+                </form>
+            </div>
+        </div>
+
+        {% if query %}
+            <h4 class="mb-4">Resultados para: <span class="text-secondary">"{{ query }}"</span></h4>
+            
+            {% if resultados %}
+                {% for artigo, score in resultados %}
+                <div class="card mb-3 shadow-sm border-0 border-start border-primary border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title mb-0">
+                                <a href="https://pubmed.ncbi.nlm.nih.gov/?term={{ artigo.titulo }}" target="_blank" class="text-decoration-none text-primary" title="Ver artigo original no PubMed">
+                                    {{ artigo.titulo }} ↗
+                                </a>
+                            </h5>
+                            <span class="badge bg-success score-badge">Relevância: {{ score }}%</span>
+                        </div>
+                        <h6 class="card-subtitle mb-2 text-muted">Doença alvo: <span class="badge bg-info text-dark">{{ artigo.doenca_alvo | capitalize }}</span></h6>
+                        <p class="card-text small text-secondary"><strong>Autores:</strong> {{ artigo.autores }}</p>
+                        <p class="card-text">{{ artigo.conteudo[:300] }}...</p>
+                        
+                        <button class="btn btn-sm btn-outline-primary mt-2">✨ Extrair Resposta Exata (QA)</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-warning text-center shadow-sm" role="alert">
+                    Não foram encontrados artigos relevantes para a sua pesquisa. Tente usar outras palavras-chave ou pesquise em inglês.
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
