@@ -1,73 +1,66 @@
-import requests
-from bs4 import BeautifulSoup
 import json
-import time
+import re
 
-def raspar_varias_doencas():
-    # A tua lista de 10 doenças para dar variedade ao Motor de Busca
-    lista_doencas = [
-        "diabetes", "asthma", "hypertension", "tuberculosis", "alzheimer", "cystic fibrosis",
-        "parkinson", "leukemia", "psoriasis", "arthritis", "glaucoma", "anemia"
-    ]
-    
-    artigos_extraidos = []
-    
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-    
-    print("A iniciar o Web Scraping (Bónus) para múltiplas doenças...\n")
-    
-    for doenca in lista_doencas:
-        print(f"A raspar artigos sobre: {doenca}...")
-        
-        # Vamos pedir os primeiros 10 resultados para garantir que apanhamos pelo menos 6 bons
-        url = f"https://pubmed.ncbi.nlm.nih.gov/?term={doenca}&size=10"
-        
-        try:
-            resposta = requests.get(url, headers=headers)
-            soup = BeautifulSoup(resposta.text, 'html.parser')
-            artigos_html = soup.find_all('article', class_='full-docsum')
-            
-            contador = 0
-            for artigo in artigos_html:
-                if contador >= 5: 
-                    break
-                    
-                titulo_tag = artigo.find('a', class_='docsum-title')
-                titulo = titulo_tag.text.strip() if titulo_tag else ""
-                
-                autores_tag = artigo.find('span', class_='docsum-authors')
-                autores = autores_tag.text.strip() if autores_tag else ""
-                
-                snippet_tag = artigo.find('div', class_='full-view-snippet')
-                snippet = snippet_tag.text.strip() if snippet_tag else ""
-                snippet = " ".join(snippet.split())
-                
-                # Só guarda se tiver realmente um título e um resumo
-                if titulo and snippet:
-                    conteudo_completo = f"{titulo}. {snippet}"
-                    
-                    artigos_extraidos.append({
-                        "doenca_alvo": doenca, # Guardamos a tag da doença (dá jeito)
-                        "titulo": titulo,
-                        "autores": autores,
-                        "conteudo": conteudo_completo
-                    })
-                    contador += 1
-            
-            # Pausa de 1 segundo entre pesquisas para o site não nos bloquear (boas práticas)
-            time.sleep(1) 
-            
-        except Exception as e:
-            print(f"Erro ao pesquisar {doenca}: {e}")
+def limpar_autores(texto):
+    if not texto:
+        return ""
+    # 1. Remove qualquer tag HTML (tudo o que estiver entre < e >)
+    texto_limpo = re.sub(r'<[^>]+>', ' ', texto)
+    # 2. Esmaga espaços duplos, \n e \t num único espaço
+    texto_limpo = re.sub(r'\s+', ' ', texto_limpo).strip()
+    return texto_limpo
 
-    # Guardar tudo no ficheiro final
-    with open('artigos_medicos.json', 'w', encoding='utf-8') as f:
-        json.dump(artigos_extraidos, f, ensure_ascii=False, indent=2)
-        
-    print(f"\nSucesso! Extraídos {len(artigos_extraidos)} artigos no total.")
-    print("O ficheiro 'artigos_medicos.json' está pronto!")
+def unificar_datasets():
+    artigos_finais = []
+
+    # ==========================================
+    # 1. PROCESSAR O DATASET DO PROFESSOR (PT)
+    # ==========================================
+    print("A limpar e processar o dataset do professor (dataset_articles.json)...")
+    try:
+        with open('dataset_articles.json', 'r', encoding='utf-8') as f:
+            artigos_base = json.load(f)
+            for art in artigos_base:
+                artigos_finais.append({
+                    "doenca_alvo": art.get("category", "Geral"),
+                    "titulo": art.get("title", ""),
+                    "autores": limpar_autores(art.get("authors", "")), # Limpeza das tags HTML acontece aqui!
+                    "conteudo": art.get("abstract", ""),
+                    "link": art.get("link", "")
+                })
+        print(f"-> Sucesso: {len(artigos_base)} artigos do professor processados.")
+    except FileNotFoundError:
+        print("-> Erro: Ficheiro 'dataset_articles.json' não encontrado.")
+
+    # ==========================================
+    # 2. PROCESSAR OS ARTIGOS DO PUBMED (EN)
+    # ==========================================
+    print("\nA juntar os teus artigos extraídos do PubMed (artigos_medicos.json)...")
+    try:
+        with open('artigos_medicos.json', 'r', encoding='utf-8') as f:
+            artigos_pubmed = json.load(f)
+            for art in artigos_pubmed:
+                # Se o link não existir no JSON, criamos um na hora para o PubMed
+                link_gerado = art.get("link", f"https://pubmed.ncbi.nlm.nih.gov/?term={art.get('titulo', '')}")
+                
+                artigos_finais.append({
+                    "doenca_alvo": art.get("doenca_alvo", "Geral"),
+                    "titulo": art.get("titulo", ""),
+                    "autores": art.get("autores", ""),
+                    "conteudo": art.get("conteudo", ""),
+                    "link": link_gerado
+                })
+        print(f"-> Sucesso: {len(artigos_pubmed)} artigos do PubMed adicionados.")
+    except FileNotFoundError:
+        print("-> Erro: Ficheiro 'artigos_medicos.json' não encontrado.")
+
+    # ==========================================
+    # 3. GUARDAR O FICHEIRO UNIFICADO MESTRE
+    # ==========================================
+    with open('artigos_medicos_unificados.json', 'w', encoding='utf-8') as f:
+        json.dump(artigos_finais, f, ensure_ascii=False, indent=2)
+
+    print(f"\n✅ CONCLUÍDO! O ficheiro 'artigos_medicos_unificados.json' foi criado com {len(artigos_finais)} artigos no total.")
 
 if __name__ == "__main__":
-    raspar_varias_doencas()
+    unificar_datasets()

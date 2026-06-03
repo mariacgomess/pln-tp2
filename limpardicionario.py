@@ -1,138 +1,145 @@
 import json
 import wikipedia
 import re
+import warnings
+from langdetect import detect, LangDetectException
+
+# Desligar o aviso do BeautifulSoup (GuessedAtParserWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module='wikipedia')
 
 wikipedia.set_lang("pt")
 
 def normalizar_ortografia(t):
     t = re.sub(r'ô', 'ó', t)
     t = re.sub(r'ê', 'é', t)
-    t = re.sub(r'cç', 'ç', t)   # acção → ação
-    t = re.sub(r'ct', 't', t)   # facto → fato
+    t = re.sub(r'cç', 'ç', t)
+    t = re.sub(r'ct', 't', t)
     return t
 
 def limpar_termo(termo):
-    t = str(termo)
-
-    # 1. Minúsculas
-    t = t.lower()
-
-    # 2. Espaços invisíveis
+    t = str(termo).lower()
     t = re.sub(r'\s+', ' ', t).strip()
-
-    # 3. Marcadores regionais — formato colchete: [Br.] [Pt.] [Pt] [BR]
-    t = re.sub(r'\s*\[\s*(pt\.?|br\.?)\s*\]', '', t, flags=re.IGNORECASE)
-    # 3b. Formato parêntese: (pt) (br)
-    t = re.sub(r'\s*\(\s*(pt|br)\s*\)', '', t, flags=re.IGNORECASE)
-
-    # 4. Marcadores de categoria: (sg), (abrev.), (f), (m), (pop.), etc.
-    t = re.sub(r'\s*\(\s*(sg|abrev\.?|arc\.?|pop\.?|cult\.?|col\.?|[mf])\s*\)', '', t, flags=re.IGNORECASE)
-
-    # 5. Colchetes populares/arcaicos: [pop.], [arc.], [cult.]
-    t = re.sub(r'\s*\[\s*(pop\.?|arc\.?|cult\.?|col\.?)\s*\]', '', t, flags=re.IGNORECASE)
-
-    # 6. Prefixos numéricos: "35 imunidade natural" → "imunidade natural"
-    t = re.sub(r'^\d+\s+', '', t)
-
-    # 7. Parênteses opcionais de letra: "(d)escamação" → "descamação"
-    t = re.sub(r'\(([a-záéíóúàãõêôâç])\)', r'\1', t)
-
-    # 8. Aspas simples/duplas
-    t = t.replace("'", "").replace('"', '')
-
-    # 9. Interrogações
-    t = t.replace("?", "")
-
-    # 10. Parênteses sobreviventes: "(herpes) zóster" → "herpes zóster"
-    t = t.replace("(", "").replace(")", "")
-
-    # 11. Normalização ortográfica PT/BR
-    t = normalizar_ortografia(t)
-
-    # 12. Limpeza final
-    t = re.sub(r'^[\s\-,;\.]+|[\s\-,;\.]+$', '', t)
-    t = re.sub(r'\s{2,}', ' ', t).strip()
-
-    return t
+    
+    t = re.sub(r'\[.*?\]', '', t)
+    t = re.sub(r'\(.*?\)', '', t)
+    
+    t = re.sub(r'\b(pt|br)\b\W*$', '', t, flags=re.IGNORECASE)
+    t = t.replace("'", "").replace("?", "")
+    t = re.sub(r'\s+', ' ', t).strip()
+    
+    return normalizar_ortografia(t)
 
 def limpar_lista_strings(lista):
-    vistas = set()
-    resultado = []
-    for item in lista:
-        limpo = re.sub(r'\s+', ' ', str(item)).strip() if item else ''
-        if limpo and limpo not in vistas:
-            vistas.add(limpo)
-            resultado.append(limpo)
-    return resultado
+    return list(set([limpar_termo(item) for item in lista if item]))
+
+def e_portugues_estrito(texto):
+    if not texto or str(texto).strip() == "":
+        return False
+        
+    try:
+        if detect(texto) != 'pt':
+            return False
+    except LangDetectException:
+        return False
+        
+    texto_lower = " " + texto.lower() + " "
+    palavras_proibidas = [
+        " the ", " of ", " is ", " and ", " disease ", " with ", " by ", " for ", 
+        " el ", " y ", " enfermedad ", " los ", " las ", " del ", " con ", 
+        " malaltia ", " els ", " l'", " dels ", " amb " 
+    ]
+    
+    for palavra in palavras_proibidas:
+        if palavra in texto_lower:
+            return False 
+            
+    return True
 
 def processar_dataset():
-    with open('dicionario_unificado.json', 'r', encoding='utf-8') as f:
-        dataset = json.load(f)
+    with open('dicionario_unificado.json', 'r', encoding='utf-8') as file:
+        dataset = json.load(file)
 
-    termos_unicos  = {}
+    termos_unicos = {}
     termos_atualizados = 0
-
-    print("A iniciar a Limpeza Suprema (tudo minúsculas, sem pt/br, sem lixo)...")
-
+    definicoes_apagadas = 0
+    
+    print("🧹 Fase 1: Limpeza Suprema e Unificação a decorrer...")
+    
     for entrada in dataset:
         termo_original = entrada.get("termo", "")
-        termo_limpo    = limpar_termo(termo_original)
-
+        termo_limpo = limpar_termo(termo_original)
+        
         if not termo_limpo:
             continue
+            
+        definicao_atual = entrada.get("definicao", "")
+        if definicao_atual and not e_portugues_estrito(definicao_atual):
+            entrada["definicao"] = "" 
+            definicoes_apagadas += 1
 
-        # UNIFICAÇÃO: funde domínios, sinónimos, siglas e fontes
         if termo_limpo in termos_unicos:
-            existente = termos_unicos[termo_limpo]
-
-            existente["dominios"] = list(set(
-                (existente.get("dominios") or []) + (entrada.get("dominios") or [])
-            ))
-            existente["sinonimos"] = limpar_lista_strings(
-                (existente.get("sinonimos") or []) + (entrada.get("sinonimos") or [])
-            )
-            existente["siglas"] = limpar_lista_strings(
-                (existente.get("siglas") or []) + (entrada.get("siglas") or [])
-            )
-            existente["fontes"] = list(set(
-                (existente.get("fontes") or []) + (entrada.get("fontes") or [])
-            ))
-            if not existente.get("definicao") and entrada.get("definicao"):
-                existente["definicao"] = entrada["definicao"]
-            if not existente.get("termo_popular") and entrada.get("termo_popular"):
-                existente["termo_popular"] = entrada["termo_popular"]
+            termos_unicos[termo_limpo]["sinonimos"].extend(limpar_lista_strings(entrada.get("sinonimos") or []))
+            termos_unicos[termo_limpo]["dominios"].extend(entrada.get("dominios") or [])
+            termos_unicos[termo_limpo]["sinonimos"] = list(set(termos_unicos[termo_limpo]["sinonimos"]))
+            termos_unicos[termo_limpo]["dominios"] = list(set(termos_unicos[termo_limpo]["dominios"]))
+            
+            if not termos_unicos[termo_limpo].get("definicao") and entrada.get("definicao"):
+                termos_unicos[termo_limpo]["definicao"] = entrada["definicao"]
             continue
-
-        # NOVA ENTRADA: limpa campos e regista
-        entrada["termo"]     = termo_limpo
+            
+        entrada["termo"] = termo_limpo
         entrada["sinonimos"] = limpar_lista_strings(entrada.get("sinonimos") or [])
-        entrada["siglas"]    = limpar_lista_strings(entrada.get("siglas") or [])
-        entrada["dominios"]  = list(set(entrada.get("dominios") or []))
-        entrada["fontes"]    = list(set(entrada.get("fontes") or []))
+        entrada["dominios"] = list(set(entrada.get("dominios") or []))
+        
+        termos_unicos[termo_limpo] = entrada
 
-        # ENRIQUECIMENTO via Wikipedia
-        if not entrada.get("definicao"):
-            try:
-                resumo = wikipedia.summary(termo_limpo, sentences=2)
+    # Fase 2: Pesquisar na Wikipédia (AGORA COM BARRAS DE PROGRESSO NO TERMINAL!)
+    termos_vazios = [k for k, v in termos_unicos.items() if not v.get("definicao") or str(v.get("definicao")).strip() == ""]
+    total_vazios = len(termos_vazios)
+    
+    print(f"\n🌐 Fase 2: Identificados {total_vazios} termos sem definição (vazios ou estrangeiros apagados).")
+    print("A iniciar pesquisa na Wikipédia. Isto pode demorar alguns minutos...")
+    
+    contador = 0
+    for termo in termos_vazios:
+        contador += 1
+        entrada = termos_unicos[termo]
+        
+        # Imprime o progresso (ex: [15/340] A pesquisar: abcesso...)
+        print(f"[{contador}/{total_vazios}] A processar: {termo}...", end="\r")
+        
+        try:
+            resumo = wikipedia.summary(termo, sentences=2)
+            if e_portugues_estrito(resumo):
                 entrada["definicao"] = resumo
                 if isinstance(entrada.get("fontes"), list) and "wikipedia" not in entrada["fontes"]:
                     entrada["fontes"].append("wikipedia")
                 termos_atualizados += 1
-                print(f"Definição adicionada para: {termo_limpo}")
-            except Exception:
-                pass
+                # Se encontrar, diz!
+                print(f"[{contador}/{total_vazios}] ✅ Encontrado: {termo}                   ")
+        except Exception:
+            pass
 
-        termos_unicos[termo_limpo] = entrada
+    # Fase 3: Remover quem não tem definição e adicionar Categoria
+    print("\n\n📦 Fase 3: A criar o dicionário final e a eliminar termos s4em solução...")
+    dataset_final = []
+    for entrada in termos_unicos.values():
+        definicao = entrada.get("definicao", "")
+        
+        if definicao and str(definicao).strip() != "":
+            if not entrada.get("dominios") or len(entrada["dominios"]) == 0:
+                entrada["dominios"] = ["Termo Clínico"]
+            dataset_final.append(entrada)
 
-    # Ordena A-Z e grava no mesmo sítio que o original
-    dataset_final = sorted(termos_unicos.values(), key=lambda x: x.get("termo", ""))
+    dataset_final.sort(key=lambda x: x.get("termo", ""))
 
-    with open('dicionario_unificado.json', 'w', encoding='utf-8') as f:
+    with open('dicionario_final.json', 'w', encoding='utf-8') as f:
         json.dump(dataset_final, f, ensure_ascii=False, indent=2)
 
-    print(f"\nConcluído! {termos_atualizados} definições adicionadas.")
-    print(f"O ficheiro original tinha {len(dataset)} termos.")
-    print(f"O ficheiro final tem {len(dataset_final)} termos únicos, puros e brilhantes.")
+    print(f"\n--- RELATÓRIO FINAL ---")
+    print(f"❌ {definicoes_apagadas} definições ESTRANGEIRAS foram apagadas.")
+    print(f"✅ {termos_atualizados} definições em PT adicionadas da Wikipédia.")
+    print(f"🧹 TERMOS VAZIOS ELIMINADOS! O dicionário final tem agora {len(dataset_final)} termos.")
 
 if __name__ == "__main__":
     processar_dataset()

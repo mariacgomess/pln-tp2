@@ -7,7 +7,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="card-title text-primary mb-0">📖 Gestão do Dicionário</h2>
-                    <button class="btn btn-success">+ Adicionar Novo Termo</button>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAdicionar">+ Adicionar Novo Termo</button>
                 </div>
                 
                 <p class="text-muted text-center mb-3">Selecione uma letra para explorar os termos do dicionário unificado.</p>
@@ -54,7 +54,11 @@
                                 </td>
                                 <td style="min-width: 150px;">
                                     <button class="btn btn-sm btn-outline-primary">Editar</button>
-                                    <button class="btn btn-sm btn-outline-danger">Apagar</button>
+                                    <form method="POST" action="/apagar_termo" style="display: inline;">
+                                        <input type="hidden" name="termo" value="{{ entrada.termo }}">
+                                        <input type="hidden" name="letra" value="{{ letra_atual }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem a certeza que deseja apagar o termo {{ entrada.termo }}?');">Apagar</button>
+                                    </form>
                                 </td>
                             </tr>
                             {% else %}
@@ -70,4 +74,35 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="modalAdicionar" tabindex="-1" aria-labelledby="modalAdicionarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAdicionarLabel">Adicionar Novo Termo Clínico</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="/adicionar_termo">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label for="termo" class="form-label">Termo Médico</label>
+                  <input type="text" class="form-control" id="termo" name="termo" required>
+              </div>
+              <div class="mb-3">
+                  <label for="dominio" class="form-label">Domínio / Categoria</label>
+                  <input type="text" class="form-control" id="dominio" name="dominio" placeholder="ex: Patologia, Anatomia...">
+              </div>
+              <div class="mb-3">
+                  <label for="definicao" class="form-label">Definição</label>
+                  <textarea class="form-control" id="definicao" name="definicao" rows="3" required></textarea>
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-success">Guardar no Dicionário</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
