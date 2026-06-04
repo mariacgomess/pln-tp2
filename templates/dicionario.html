@@ -3,106 +3,203 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="card-title text-primary mb-0">📖 Gestão do Dicionário</h2>
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAdicionar">+ Adicionar Novo Termo</button>
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--radius-md);">
+            <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+                <div>
+                    <h2 class="text-primary mb-1 fw-bold">Dicionário Médico</h2>
+                    <p class="text-muted mb-0 small">Consulte, edite ou adicione termos clínicos à base de dados.</p>
                 </div>
-                
-                <p class="text-muted text-center mb-3">Selecione uma letra para explorar os termos do dicionário unificado.</p>
+                <button type="button" class="btn btn-primary-custom mt-2 mt-sm-0" data-bs-toggle="modal" data-bs-target="#modalAdicionar">+ Adicionar Termo</button>
+            </div>
+            
+            <!-- Barra de Pesquisa + Filtros -->
+            <form method="GET" action="/dicionario" class="d-flex gap-2 mb-4 flex-wrap">
+                <input type="hidden" name="letra" value="{{ letra_atual }}">
+                <input type="text" name="q" class="form-control form-control-custom" style="min-width: 200px; flex: 1;" placeholder="Pesquisar por nome de conceito..." value="{{ query_filtro }}">
+                <select name="dominio" class="form-select form-control-custom" style="max-width: 260px;">
+                    <option value="">Filtrar por domínio</option>
+                    {% for dominio in lista_dominios %}
+                        <option value="{{ dominio }}" {% if dominio == dominio_atual %}selected{% endif %}>{{ dominio }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary-custom px-4">Filtrar</button>
+                {% if query_filtro or dominio_atual %}
+                    <a href="/dicionario" class="btn btn-outline-secondary fw-semibold px-3" style="border-color: var(--color-border); white-space: nowrap;">✕ Limpar</a>
+                {% endif %}
+            </form>
 
-                <div class="mb-4 text-center">
-                    <div class="btn-group flex-wrap" role="group" aria-label="Alfabeto">
-                        {% for letra in alfabeto %}
-                            <a href="/dicionario?letra={{ letra }}" class="btn btn-sm {% if letra == letra_atual %}btn-primary{% else %}btn-outline-primary{% endif %} mb-1">
-                                {{ letra }}
-                            </a>
-                        {% endfor %}
-                    </div>
+            <!-- Banner do filtro de domínio ativo -->
+            {% if dominio_atual %}
+            <div class="alert d-flex justify-content-between align-items-center py-2 px-3 mb-3 border-0 shadow-sm" role="alert"
+                 style="border-radius: var(--radius-sm); background-color: rgba(15,118,110,0.08); color: var(--color-primary);">
+                <span><strong>Domínio:</strong> {{ dominio_atual }} &nbsp;·&nbsp; <span class="text-muted">{{ total_filtrados }} resultado(s)</span></span>
+                <a href="/dicionario{% if query_filtro %}?q={{ query_filtro }}{% endif %}" class="btn-close" aria-label="Close"></a>
+            </div>
+            {% endif %}
+
+
+
+            <!-- Navegação Alfabética com botão Todos (∀) -->
+            <div class="mb-4">
+                <div class="alphabet-container">
+                    <a href="/dicionario?letra=TODOS{% if dominio_atual %}&dominio={{ dominio_atual }}{% endif %}{% if query_filtro %}&q={{ query_filtro }}{% endif %}"
+                       class="letter-btn {% if letra_atual == 'TODOS' and not dominio_atual and not query_filtro %}active{% endif %}"
+                       title="Mostrar todos os termos">
+                        Todos
+                    </a>
+                    {% for letra in alfabeto %}
+                        <a href="/dicionario?letra={{ letra }}{% if dominio_atual %}&dominio={{ dominio_atual }}{% endif %}{% if query_filtro %}&q={{ query_filtro }}{% endif %}"
+                           class="letter-btn {% if letra == letra_atual and not dominio_atual and not query_filtro %}active{% endif %}">
+                            {{ letra }}
+                        </a>
+                    {% endfor %}
                 </div>
+            </div>
 
-                <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
-                    <table class="table table-hover table-bordered align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Termo</th>
-                                <th>Domínios</th>
-                                <th>Definição (Resumo)</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for entrada in termos %}
-                            <tr>
-                                <td><strong>{{ entrada.termo }}</strong></td>
-                                <td>
-                                    {% if entrada.dominios %}
-                                        {% for dominio in entrada.dominios %}
-                                            <span class="badge bg-secondary mb-1">{{ dominio }}</span>
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if entrada.definicao %}
-                                        {{ entrada.definicao[:120] }}...
-                                    {% else %}
-                                        <span class="text-muted fst-italic">Sem definição</span>
-                                    {% endif %}
-                                </td>
-                                <td style="min-width: 150px;">
-                                    <button class="btn btn-sm btn-outline-primary">Editar</button>
-                                    <form method="POST" action="/apagar_termo" style="display: inline;">
+            <!-- Contador de resultados -->
+            <div class="mb-2">
+                <small class="text-muted">
+                    A mostrar <strong>{{ termos|length }}</strong>
+                    {% if total_filtrados > termos|length %}de {{ total_filtrados }}{% endif %}
+                    conceito(s)
+                    {% if dominio_atual %} no domínio <em>{{ dominio_atual }}</em>{% endif %}
+                    {% if query_filtro %} para "<em>{{ query_filtro }}</em>"{% endif %}
+                    {% if not dominio_atual and not query_filtro and letra_atual != 'TODOS' %} começados por <strong>{{ letra_atual }}</strong>{% endif %}
+                </small>
+            </div>
+
+            <!-- Tabela de Termos -->
+            <div class="table-responsive border rounded-3" style="max-height: 55vh; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th class="ps-4" style="width: 25%;">Termo</th>
+                            <th style="width: 25%;">Domínios</th>
+                            <th style="width: 35%;">Definição</th>
+                            <th class="pe-4 text-end" style="width: 15%;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entrada in termos %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="/conceito/{{ entrada.termo }}" class="fw-bold text-decoration-none" style="color: var(--color-primary);">
+                                    {{ entrada.termo }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if entrada.dominios %}
+                                    {% for dominio in entrada.dominios %}
+                                        <a href="/dicionario?dominio={{ dominio }}" class="badge badge-custom badge-domain text-decoration-none mb-1 d-inline-block">{{ dominio }}</a>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted small fst-italic">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-secondary small">
+                                {% if entrada.definicao %}
+                                    {{ entrada.definicao[:130] }}{% if entrada.definicao|length > 130 %}...{% endif %}
+                                {% else %}
+                                    <span class="text-muted fst-italic">Sem definição</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a href="/conceito/{{ entrada.termo }}" class="btn btn-sm btn-outline-primary" style="border-radius: var(--radius-sm);">Ver</a>
+                                    <form method="POST" action="/apagar_termo" class="d-inline">
                                         <input type="hidden" name="termo" value="{{ entrada.termo }}">
                                         <input type="hidden" name="letra" value="{{ letra_atual }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem a certeza que deseja apagar o termo {{ entrada.termo }}?');">Apagar</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: var(--radius-sm);" onclick="return confirm('Apagar o conceito \'{{ entrada.termo }}\'?');">✕</button>
                                     </form>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4">Não existem termos a começar pela letra {{ letra_atual }}.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                <div class="fs-2 mb-2"></div>
+                                <p class="mb-0">Nenhum conceito encontrado com os filtros atuais.</p>
+                                <small>Tente limpar os filtros ou adicionar um novo termo.</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+
         </div>
     </div>
 </div>
+
+<!-- Modal Adicionar -->
 <div class="modal fade" id="modalAdicionar" tabindex="-1" aria-labelledby="modalAdicionarLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalAdicionarLabel">Adicionar Novo Termo Clínico</h5>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow" style="border-radius: var(--radius-md);">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold text-primary" id="modalAdicionarLabel">Novo Conceito Clínico</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form method="POST" action="/adicionar_termo">
-          <div class="modal-body">
+          <div class="modal-body py-3" style="max-height: 70vh; overflow-y: auto;">
               <div class="mb-3">
-                  <label for="termo" class="form-label">Termo Médico</label>
-                  <input type="text" class="form-control" id="termo" name="termo" required>
+                  <label for="novo_termo" class="form-label fw-semibold text-secondary small">Termo / Conceito Médico *</label>
+                  <input type="text" class="form-control form-control-custom" id="novo_termo" name="termo" placeholder="ex: fémur, abcesso, hipertensão..." required>
               </div>
               <div class="mb-3">
-                  <label for="dominio" class="form-label">Domínio / Categoria</label>
-                  <input type="text" class="form-control" id="dominio" name="dominio" placeholder="ex: Patologia, Anatomia...">
+                  <label for="novo_dominio" class="form-label fw-semibold text-secondary small">Domínio Clínico</label>
+                  <input type="text" class="form-control form-control-custom" id="novo_dominio" name="dominio" placeholder="ex: Anatomia, Patologia, Farmacologia...">
+                  <div class="form-text">Separe múltiplos domínios com vírgula.</div>
               </div>
               <div class="mb-3">
-                  <label for="definicao" class="form-label">Definição</label>
-                  <textarea class="form-control" id="definicao" name="definicao" rows="3" required></textarea>
+                  <label for="nova_definicao" class="form-label fw-semibold text-secondary small">Definição *</label>
+                  <textarea class="form-control form-control-custom" id="nova_definicao" name="definicao" rows="3" placeholder="Definição científica ou médica do conceito..." required></textarea>
+              </div>
+              <div class="mb-3">
+                  <label for="novo_termo_popular" class="form-label fw-semibold text-secondary small">Termo Popular / Nome Comum</label>
+                  <input type="text" class="form-control form-control-custom" id="novo_termo_popular" name="termo_popular" placeholder="ex: osso da coxa, tensão alta...">
+              </div>
+              <div class="mb-3">
+                  <label for="novos_sinonimos" class="form-label fw-semibold text-secondary small">Sinónimos</label>
+                  <input type="text" class="form-control form-control-custom" id="novos_sinonimos" name="sinonimos" placeholder="ex: hemorragia, sangramento...">
+                  <div class="form-text">Separe com vírgula.</div>
+              </div>
+              <div class="mb-3">
+                  <label for="novas_siglas" class="form-label fw-semibold text-secondary small">Siglas / Abreviaturas</label>
+                  <input type="text" class="form-control form-control-custom" id="novas_siglas" name="siglas" placeholder="ex: HTA, DM, AVC...">
+                  <div class="form-text">Separe com vírgula.</div>
+              </div>
+              <div class="mb-3">
+                  <label for="novos_relacionados" class="form-label fw-semibold text-secondary small">Termos Relacionados</label>
+                  <input type="text" class="form-control form-control-custom" id="novos_relacionados" name="termos_relacionados" placeholder="ex: artéria, veia, coração...">
+                  <div class="form-text">Separe com vírgula.</div>
+              </div>
+              <hr class="my-2">
+              <p class="fw-semibold text-secondary small mb-2">Traduções</p>
+              <div class="row g-2">
+                  <div class="col-6">
+                      <label class="form-label text-secondary small mb-1">Inglês (EN)</label>
+                      <input type="text" class="form-control form-control-custom" name="trans_en" placeholder="English term">
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label text-secondary small mb-1">Espanhol (ES)</label>
+                      <input type="text" class="form-control form-control-custom" name="trans_es" placeholder="Término en español">
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label text-secondary small mb-1">Francês (FR)</label>
+                      <input type="text" class="form-control form-control-custom" name="trans_fr" placeholder="Terme en français">
+                  </div>
+                  <div class="col-6">
+                      <label class="form-label text-secondary small mb-1">Alemão (DE)</label>
+                      <input type="text" class="form-control form-control-custom" name="trans_de" placeholder="Deutsches Fachbegriff">
+                  </div>
               </div>
           </div>
-          <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-success">Guardar no Dicionário</button>
+          <div class="modal-footer border-top-0 pt-2">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: var(--radius-sm);">Cancelar</button>
+              <button type="submit" class="btn btn-primary-custom">Guardar</button>
           </div>
       </form>
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

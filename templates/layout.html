@@ -3,36 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma Médica - TP2</title>
+    <title>MedPlatform - Processamento de Linguagem Natural</title>
+    
+    <!-- Meta SEO -->
+    <meta name="description" content="Plataforma médica interativa para exploração de termos clínicos, pesquisa semântica de artigos e question answering baseado em BERT.">
+    <meta name="keywords" content="PLN, NLP, IR, QA, BERT, TF-IDF, Processamento de Linguagem Natural, Dicionário Clínico">
+    <meta name="author" content="Grupo TP2">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f4f6f9; }
-        .navbar { margin-bottom: 30px; }
-        .score-badge { font-size: 0.9em; }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-custom mb-5">
         <div class="container">
-            <a class="navbar-brand" href="/">⚙️ MedPlatform TP2</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav ms-auto">
+            <a class="navbar-brand" href="/" id="nav-brand-main">MedPlatform <span style="font-weight: 300; opacity: 0.85;">PLN</span></a>
+            <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="/dicionario">📖 Dicionário (CRUD)</a>
+                        <a class="nav-link" href="/" id="nav-link-home">Início</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/pesquisa">🔎 Motor de Busca</a>
+                        <a class="nav-link" href="/dicionario" id="nav-link-dict">Dicionário</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pesquisa" id="nav-link-search">Motor de Busca (IR & QA)</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container">
+    <main class="container mb-5">
         {% block content %}
         {% endblock %}
-    </div>
+    </main>
 
+    <footer class="text-center">
+        <div class="container">
+            <p class="mb-1"><strong>Plataforma Médica - Processamento de Linguagem Natural na Medicina (PLNEB)</strong></p>
+            <p class="mb-0 text-muted small">© 2026 Trabalho Prático 2. Desenvolvido em Python com Flask, scikit-learn e Hugging Face.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

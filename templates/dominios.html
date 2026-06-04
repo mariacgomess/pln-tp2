@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--radius-md);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h2 class="text-primary mb-1 fw-bold">Domínios / Categorias Médicas</h2>
+                    <p class="text-muted mb-0">Navegue pelos conceitos do dicionário organizados pelas suas especialidades, tecidos ou categorias clínicas.</p>
+                </div>
+            </div>
+            
+            <div class="row g-3 mt-2">
+                {% for dominio, count in lista_dominios %}
+                <div class="col-md-4 col-sm-6">
+                    <a href="/dicionario?dominio={{ dominio }}" class="domain-card">
+                        <span class="fw-bold" style="color: var(--color-text-main);">{{ dominio }}</span>
+                        <span class="badge bg-primary rounded-pill px-2.5 py-1.5" style="background-color: var(--color-primary) !important;">{{ count }}</span>
+                    </a>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">Nenhum domínio configurado no dicionário.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

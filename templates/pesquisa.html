@@ -2,47 +2,125 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm mb-4">
-            <div class="card-body text-center">
-                <h2 class="card-title text-primary mb-3">🔎 Motor de Busca (IR)</h2>
-                
-                <form method="POST" action="/pesquisa" class="d-flex justify-content-center mt-4 mb-2">
-                    <input type="text" name="query" class="form-control w-75 me-2" placeholder="Pesquise por uma doença em inglês (ex: anemia, glaucoma)..." value="{{ query }}" required>
-                    <button type="submit" class="btn btn-primary">Pesquisar</button>
-                </form>
+    <div class="col-md-9">
+        <!-- Card do Motor de Busca -->
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--radius-md);">
+            <div class="text-center mb-3">
+                <h2 class="text-primary mb-1 fw-bold">Motor de Busca Inteligente (IR)</h2>
+                <p class="text-muted">Explore artigos científicos médicos através de correspondência léxica ou semântica profunda.</p>
             </div>
+            
+            <form method="GET" action="/pesquisa" id="search-form" class="mt-3">
+                <!-- Seletor de Modelo -->
+                <input type="hidden" name="modelo" id="search-model-input" value="{{ modelo }}">
+                <div class="search-mode-select mb-3">
+                    <div class="search-mode-option {% if modelo == 'tfidf' %}active{% endif %}" id="mode-tfidf" onclick="setSearchModel('tfidf')" role="button" tabindex="0">
+                        TF-IDF (Busca por Palavras-Chave)
+                    </div>
+                    <div class="search-mode-option {% if modelo == 'sbert' %}active{% endif %}" id="mode-sbert" onclick="setSearchModel('sbert')" role="button" tabindex="0">
+                        SBERT (Busca Semântica/Contextual)
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <input type="text" name="query" class="form-control form-control-custom w-100" placeholder="Insira os sintomas ou patologia em inglês ou português (ex: anemia, pulmonar, fever)..." value="{{ query }}" required id="search-query-input">
+                    <button type="submit" class="btn btn-primary-custom px-4" id="btn-search-submit">Pesquisar</button>
+                </div>
+            </form>
         </div>
 
         {% if query %}
-            <h4 class="mb-4">Resultados para: <span class="text-secondary">"{{ query }}"</span></h4>
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h4 class="fw-bold mb-0">Resultados da Pesquisa: <span class="text-secondary" style="font-weight: 400;">"{{ query }}"</span></h4>
+                <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold">
+                    Modelo Utilizado: {% if modelo == 'tfidf' %}TF-IDF{% else %}SBERT (medlink-bi-encoder){% endif %}
+                </span>
+            </div>
+
+            {% if termos_adicionados %}
+            <div class="alert alert-info border-info-subtle bg-info-subtle text-info-emphasis d-flex align-items-center gap-2 mb-4 p-3 shadow-sm" style="border-radius: var(--radius-md);">
+                <div>
+                    <strong>Pesquisa Expandida:</strong> Foram adicionados sinónimos e traduções do dicionário para enriquecer os resultados: 
+                    {% for termo in termos_adicionados %}
+                        <span class="badge bg-white text-info-emphasis border border-info px-2 py-1 mx-0.5 fw-normal" style="font-size: 0.85rem;">{{ termo }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
             
             {% if resultados %}
                 {% for artigo, score in resultados %}
-                <div class="card mb-3 shadow-sm border-0 border-start border-primary border-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="card-title mb-0">
-                                <a href="https://pubmed.ncbi.nlm.nih.gov/?term={{ artigo.titulo }}" target="_blank" class="text-decoration-none text-primary" title="Ver artigo original no PubMed">
+                <div class="card border-0 shadow-sm mb-4 overflow-hidden" style="border-radius: var(--radius-md); border-left: 4px solid var(--color-primary) !important;" id="article-card-{{ loop.index }}">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-2 flex-wrap flex-sm-nowrap">
+                            <h5 class="fw-bold mb-0">
+                                <a href="{{ artigo.link }}" target="_blank" class="text-decoration-none text-primary hover-underline" id="article-title-link-{{ loop.index }}">
                                     {{ artigo.titulo }} ↗
                                 </a>
                             </h5>
-                            <span class="badge bg-success score-badge">Relevância: {{ score }}%</span>
+                            <span class="badge bg-success rounded-pill px-3 py-2 fs-7 shadow-sm" style="background-color: var(--color-success) !important; min-width: 130px; text-align: center;">Relevância: {{ score }}%</span>
                         </div>
-                        <h6 class="card-subtitle mb-2 text-muted">Doença alvo: <span class="badge bg-info text-dark">{{ artigo.doenca_alvo | capitalize }}</span></h6>
-                        <p class="card-text small text-secondary"><strong>Autores:</strong> {{ artigo.autores }}</p>
-                        <p class="card-text">{{ artigo.conteudo[:300] }}...</p>
                         
-                        <button class="btn btn-sm btn-outline-primary mt-2">✨ Extrair Resposta Exata (QA)</button>
+                        <div class="mb-3">
+                            <span class="text-muted small">Categoria:</span>
+                            <span class="badge bg-info text-dark rounded-pill px-2.5 py-1 small" style="background-color: rgba(6, 182, 212, 0.1) !important; color: #0891b2 !important;">
+                                {{ (artigo.doenca_alvo or 'Geral') | capitalize }}
+                            </span>
+                        </div>
+
+                        <p class="text-secondary small mb-3">
+                            <strong>Autores:</strong> {{ artigo.autores or 'Não especificado' }}
+                        </p>
+                        
+                        <!-- Abstract do Artigo -->
+                        <div class="article-content-wrapper mb-3">
+                            <h6 class="fw-bold text-dark mb-1 small text-uppercase" style="letter-spacing: 0.5px;">Abstract / Conteúdo</h6>
+                            <p class="text-dark mb-0 fs-6 lh-base text-abstract" id="abstract-text-{{ loop.index }}">{{ artigo.conteudo }}</p>
+                        </div>
+                        
+                        <!-- Ação de QA -->
+                        <div class="pt-2">
+                            {% if artigo.qa_disponivel %}
+                            <a href="/qa/{{ artigo.id }}" class="btn btn-sm btn-primary-custom" id="btn-qa-link-{{ loop.index }}">
+                                Perguntar ao Artigo (QA)
+                            </a>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary border-dashed" disabled title="Este artigo não possui um abstract detalhado para extração de respostas.">
+                                QA Indisponível (Sem Abstract)
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="alert alert-warning text-center shadow-sm" role="alert">
-                    Não foram encontrados artigos relevantes para a sua pesquisa. Tente usar outras palavras-chave ou pesquise em inglês.
+                <div class="alert alert-warning text-center shadow-sm p-4 border-0" role="alert" style="border-radius: var(--radius-md);">
+                    <h5 class="fw-bold">Nenhum resultado encontrado</h5>
+                    <p class="text-secondary small mb-0">Não foram encontrados artigos clínicos relevantes para a sua pesquisa. Tente usar outras palavras-chave ou pesquise em inglês.</p>
                 </div>
             {% endif %}
         {% endif %}
     </div>
 </div>
+
+<script>
+    function setSearchModel(model) {
+        document.getElementById('search-model-input').value = model;
+        
+        // Atualiza a visualização dos botões
+        if (model === 'tfidf') {
+            document.getElementById('mode-tfidf').classList.add('active');
+            document.getElementById('mode-sbert').classList.remove('active');
+        } else {
+            document.getElementById('mode-tfidf').classList.remove('active');
+            document.getElementById('mode-sbert').classList.add('active');
+        }
+
+        // Submeter o formulário imediatamente se houver texto pesquisado
+        const queryInput = document.getElementById('search-query-input');
+        if (queryInput && queryInput.value.trim() !== "") {
+            document.getElementById('search-form').submit();
+        }
+    }
+</script>
 {% endblock %}

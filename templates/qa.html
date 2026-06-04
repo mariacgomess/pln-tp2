@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Navegação de volta -->
+    <div class="col-12 mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Início</a></li>
+                <li class="breadcrumb-item"><a href="/pesquisa" class="text-decoration-none">Motor de Busca</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Question Answering</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <!-- Detalhe do Artigo -->
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--radius-md); border-left: 4px solid var(--color-primary) !important;">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-2 flex-wrap flex-sm-nowrap pb-2 border-bottom">
+                <div>
+                    <span class="badge bg-info text-dark rounded-pill px-2.5 py-1 small mb-2" style="background-color: rgba(6, 182, 212, 0.1) !important; color: #0891b2 !important;">
+                        {{ (artigo.doenca_alvo or 'Geral') | capitalize }}
+                    </span>
+                    <h2 class="fw-bold mb-1 text-primary">
+                        <a href="{{ artigo.link }}" target="_blank" class="text-decoration-none text-primary hover-underline">
+                            {{ artigo.titulo }} ↗
+                        </a>
+                    </h2>
+                    <p class="text-secondary small mb-1 mt-2">
+                        <strong>Autores:</strong> {{ artigo.autores or 'Não especificado' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Abstract do Artigo -->
+            <div class="article-content-wrapper my-3">
+                <h5 class="fw-bold text-dark mb-2 text-uppercase small" style="letter-spacing: 0.5px;">Abstract / Conteúdo Clínico</h5>
+                <p class="text-dark mb-0 fs-6 lh-base" id="abstract-text">
+                    {% if destacado %}
+                        {{ destacado | safe }}
+                    {% else %}
+                        {{ artigo.conteudo }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Painel de QA -->
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--radius-md); background-color: #ffffff;">
+            <h4 class="fw-bold text-primary mb-2">Extração de Resposta Exata (BERT QA)</h4>
+            <p class="text-muted small mb-4">Faça uma pergunta sobre o caso clínico acima e o modelo de linguagem BERT (treinado em português) irá extrair a resposta diretamente do abstract.</p>
+
+            <form method="POST" action="/qa/{{ artigo.id }}" class="mb-4" id="qa-form">
+                <div class="mb-3">
+                    <label for="pergunta" class="form-label fw-semibold text-secondary small">A sua pergunta sobre o artigo:</label>
+                    <div class="input-group">
+                        <input type="text" name="pergunta" class="form-control form-control-custom" id="pergunta" 
+                               placeholder="ex: Qual a idade do doente? Quais os sintomas? Qual o tratamento efetuado?" 
+                               value="{{ pergunta or '' }}" required autocomplete="off">
+                        <button type="submit" class="btn btn-primary-custom px-4" id="btn-qa-submit">Extrair Resposta</button>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="text-muted small">Exemplos rápidos:</span>
+                    <button type="button" class="btn btn-xs btn-outline-secondary py-0.5 px-2 text-decoration-none small" style="font-size: 0.8rem; border-radius: 20px;" onclick="preencherPergunta('Qual o diagnóstico?')">Qual o diagnóstico?</button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary py-0.5 px-2 text-decoration-none small" style="font-size: 0.8rem; border-radius: 20px;" onclick="preencherPergunta('Quais os sintomas?')">Quais os sintomas?</button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary py-0.5 px-2 text-decoration-none small" style="font-size: 0.8rem; border-radius: 20px;" onclick="preencherPergunta('Qual o tratamento?')">Qual o tratamento?</button>
+                </div>
+            </form>
+
+            <!-- Spinner de Carregamento (mostrado apenas quando o formulário é submetido) -->
+            <div class="text-center py-4 d-none" id="qa-loading">
+                <div class="spinner-border text-teal" role="status" style="color: var(--color-primary-light);">
+                    <span class="visually-hidden">A processar pergunta...</span>
+                </div>
+                <p class="text-muted small mt-2 mb-0">O modelo BERT está a analisar o texto para extrair a resposta. Por favor aguarde...</p>
+            </div>
+
+            <!-- Área de Resposta -->
+            {% if resposta %}
+            <div class="p-4 bg-light border rounded shadow-sm" id="qa-result" style="border-radius: var(--radius-md); border-left: 4px solid var(--color-success) !important;">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                    <span class="fw-bold text-success fs-5">Resposta Encontrada</span>
+                    <span class="badge bg-white text-secondary border px-3 py-1.5 fw-semibold">Confiança: {{ (score * 100) | round(1) }}%</span>
+                </div>
+                <p class="fs-4 fw-bold mb-0 text-dark" style="font-family: var(--font-display);">"{{ resposta }}"</p>
+                {% if resposta_traduzida %}
+                <div class="mt-3 pt-3 border-top" style="border-top: 1px dashed #dee2e6 !important;">
+                    <span class="badge bg-light text-secondary border px-2 py-1 small fw-semibold mb-2">Tradução Automática</span>
+                    <p class="fs-4 fw-bold mb-0 text-muted" style="font-family: var(--font-display); font-style: italic;">"{{ resposta_traduzida }}"</p>
+                </div>
+                {% endif %}
+                <small class="text-muted d-block mt-3">A resposta foi identificada no abstract e destacada a <span class="bg-warning text-dark px-1.5 py-0.5 rounded" style="font-size: 0.85em; font-weight: 600;">amarelo</span> no texto acima.</small>
+            </div>
+            {% elif erro %}
+            <div class="alert alert-danger" role="alert" style="border-radius: var(--radius-md);">
+                <h6 class="fw-bold mb-1">Erro no Processamento</h6>
+                <p class="mb-0 small">{{ erro }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="text-center mb-5">
+            <a href="javascript:history.back()" class="btn btn-outline-secondary fw-semibold px-4" style="border-radius: var(--radius-sm);">
+                Voltar aos Resultados
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function preencherPergunta(texto) {
+        document.getElementById('pergunta').value = texto;
+        document.getElementById('pergunta').focus();
+    }
+
+    document.getElementById('qa-form').addEventListener('submit', function() {
+        // Ocultar resposta anterior e mostrar loading spinner
+        const resultDiv = document.getElementById('qa-result');
+        if (resultDiv) {
+            resultDiv.classList.add('d-none');
+        }
+        document.getElementById('qa-loading').classList.remove('d-none');
+        document.getElementById('btn-qa-submit').disabled = true;
+    });
+</script>
+{% endblock %}

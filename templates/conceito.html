@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Navegação de volta -->
+    <div class="col-12 mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Início</a></li>
+                <li class="breadcrumb-item"><a href="/dicionario" class="text-decoration-none">Dicionário</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ conceito.termo }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Coluna de Detalhe -->
+    <div class="col-lg-8">
+        <div class="card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap mb-3 border-bottom pb-3">
+                <div>
+                    <span class="spec-label">Conceito Clínico</span>
+                    <h1 class="display-5 fw-bold text-primary mb-2" style="letter-spacing: -1px;">{{ conceito.termo }}</h1>
+                    
+                    <div class="mt-2">
+                        {% if conceito.dominios %}
+                            {% for dom in conceito.dominios %}
+                                <a href="/dicionario?dominio={{ dom }}" class="badge badge-custom badge-domain text-decoration-none me-1">{{ dom }}</a>
+                            {% endfor %}
+                        {% else %}
+                            <span class="badge bg-light text-muted">Sem Domínio</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-3 mt-sm-0">
+                    <form method="POST" action="/enriquecer_termo/{{ conceito.termo }}" class="d-inline">
+                        <button type="submit" class="btn btn-outline-primary fw-semibold" style="border-radius: var(--radius-sm);">
+                            Enriquecer via Wikipédia
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Definição -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-dark">Definição Científica</h5>
+                <p class="fs-5 text-secondary" style="font-weight: 400; line-height: 1.7;">
+                    {% if conceito.definicao %}
+                        {{ conceito.definicao }}
+                    {% else %}
+                        <span class="text-muted fst-italic">Sem definição de momento. Use o botão de enriquecimento automático para pesquisar no Wikipédia.</span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Termo Popular -->
+            {% if conceito.termo_popular %}
+            <div class="mb-4 p-3 rounded-3" style="background-color: rgba(2, 132, 199, 0.05); border-left: 3px solid var(--color-secondary);">
+                <h6 class="fw-bold mb-1" style="color: var(--color-secondary);">Termo Popular / Sinonímia Comum</h6>
+                <p class="mb-0 text-secondary">{{ conceito.termo_popular }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Sinónimos e Siglas -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <h6 class="fw-bold text-dark">Sinónimos Clínicos</h6>
+                    {% if conceito.sinonimos %}
+                        <div class="d-flex flex-wrap gap-1.5 mt-2">
+                            {% for sin in conceito.sinonimos %}
+                                <a href="/conceito/{{ sin }}" class="badge badge-custom badge-synonym text-decoration-none">{{ sin }}</a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted small fst-italic">Nenhum sinónimo registado.</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-dark">Siglas / Acrónimos</h6>
+                    {% if conceito.siglas %}
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            {% for sig in conceito.siglas %}
+                                <span class="badge bg-dark text-white rounded-1 px-2 py-1 small">{{ sig }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted small fst-italic">Nenhuma sigla registada.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Termos Relacionados -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-dark">Termos Relacionados</h6>
+                {% if conceito.termos_relacionados %}
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        {% for tr in conceito.termos_relacionados %}
+                            <a href="/conceito/{{ tr }}" class="btn btn-xs btn-outline-secondary px-2.5 py-1 text-decoration-none small" style="border-radius: 50px; font-size: 0.85rem;">{{ tr }}</a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Mostrar termos no mesmo domínio como sugestões -->
+                    {% if termos_mesmo_dominio %}
+                        <p class="text-muted small mb-2">Sem termos relacionados explícitos. Sugestões no mesmo domínio:</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for t_rel in termos_mesmo_dominio[:5] %}
+                                <a href="/conceito/{{ t_rel.termo }}" class="badge bg-light text-secondary border text-decoration-none px-2 py-1">{{ t_rel.termo }}</a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted small fst-italic">Sem relações registadas.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Traduções -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-dark mb-3">Traduções Multilingues</h6>
+                <div class="row g-2">
+                    {% for lang, trans in conceito.traducoes.items() %}
+                        {% if trans %}
+                        <div class="col-md-4 col-sm-6">
+                            <div class="border rounded p-2.5 d-flex align-items-center bg-light">
+                                <span class="fw-bold text-uppercase text-secondary me-2 small">{{ lang }}</span>
+                                <span class="text-dark fw-semibold small">{{ trans }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if not conceito.traducoes or not conceito.traducoes.values()|select|list %}
+                        <p class="text-muted small fst-italic ps-2">Nenhuma tradução disponível de momento.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Fontes -->
+            <div class="border-top pt-3">
+                <span class="spec-label">Fontes de Informação:</span>
+                {% if conceito.fontes %}
+                    {% for fonte in conceito.fontes %}
+                        <span class="badge bg-light text-secondary border ms-1">{{ fonte }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="badge bg-light text-muted border ms-1">insercao_manual</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna de Ações e Edição -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--radius-md); background-color: #ffffff;">
+            <h4 class="fw-bold text-primary mb-3">Editar Conceito</h4>
+            <p class="text-muted small mb-4">Atualize as informações deste conceito. As alterações são persistidas imediatamente.</p>
+            
+            <form method="POST" action="/editar_termo/{{ conceito.termo }}">
+                <div class="mb-3">
+                    <label for="edit_definicao" class="form-label fw-semibold text-secondary small">Definição Científica</label>
+                    <textarea class="form-control form-control-custom" id="edit_definicao" name="definicao" rows="5" required>{{ conceito.definicao }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="edit_dominios" class="form-label fw-semibold text-secondary small">Domínios Clínicos (separados por vírgula)</label>
+                    <input type="text" class="form-control form-control-custom" id="edit_dominios" name="dominios" value="{{ conceito.dominios|join(', ') }}" placeholder="ex: Anatomia, Ossos">
+                </div>
+
+                <div class="mb-3">
+                    <label for="edit_sinonimos" class="form-label fw-semibold text-secondary small">Sinónimos (separados por vírgula)</label>
+                    <input type="text" class="form-control form-control-custom" id="edit_sinonimos" name="sinonimos" value="{{ conceito.sinonimos|join(', ') }}" placeholder="ex: fémures, osso da coxa">
+                </div>
+
+                <div class="mb-3">
+                    <label for="edit_siglas" class="form-label fw-semibold text-secondary small">Siglas / Acrónimos (separados por vírgula)</label>
+                    <input type="text" class="form-control form-control-custom" id="edit_siglas" name="siglas" value="{{ conceito.siglas|join(', ') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="edit_termos_relacionados" class="form-label fw-semibold text-secondary small">Termos Relacionados (separados por vírgula)</label>
+                    <input type="text" class="form-control form-control-custom" id="edit_termos_relacionados" name="termos_relacionados" value="{{ (conceito.termos_relacionados or [])|join(', ') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="edit_termo_popular" class="form-label fw-semibold text-secondary small">Termo Popular</label>
+                    <input type="text" class="form-control form-control-custom" id="edit_termo_popular" name="termo_popular" value="{{ conceito.termo_popular or '' }}">
+                </div>
+
+                <hr class="my-4">
+                <h6 class="fw-bold text-secondary mb-3">Traduções</h6>
+                <div class="row g-2 mb-4">
+                    <div class="col-6">
+                        <label for="edit_trans_en" class="form-label text-muted small">Inglês (en)</label>
+                        <input type="text" class="form-control form-control-custom py-1.5" id="edit_trans_en" name="trans_en" value="{{ conceito.traducoes.en or '' }}">
+                    </div>
+                    <div class="col-6">
+                        <label for="edit_trans_es" class="form-label text-muted small">Espanhol (es)</label>
+                        <input type="text" class="form-control form-control-custom py-1.5" id="edit_trans_es" name="trans_es" value="{{ conceito.traducoes.es or '' }}">
+                    </div>
+                    <div class="col-6">
+                        <label for="edit_trans_fr" class="form-label text-muted small">Francês (fr)</label>
+                        <input type="text" class="form-control form-control-custom py-1.5" id="edit_trans_fr" name="trans_fr" value="{{ conceito.traducoes.fr or '' }}">
+                    </div>
+                    <div class="col-6">
+                        <label for="edit_trans_de" class="form-label text-muted small">Alemão (de)</label>
+                        <input type="text" class="form-control form-control-custom py-1.5" id="edit_trans_de" name="trans_de" value="{{ conceito.traducoes.de or '' }}">
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary-custom w-100">Gravar Alterações</button>
+                    <a href="/dicionario" class="btn btn-outline-secondary w-100 fw-semibold" style="border-radius: var(--radius-sm); border-color: var(--color-border);">Voltar ao Dicionário</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+[
+  {
+    "context": "As vasculites caracterizam-se por inflamação e necrose de vasos sanguíneos, frequentemente de causa autoimune, porém podem ser secundárias, por exemplo, a infeções. Relata-se um caso de vasculite secundária com atingimento cutâneo, articular e hematológico por infeção pulmonar por Entamoeba histolytica, num homem de 36 anos com história prévia de viagem à América do Sul.",
+    "question": "Qual a idade do homem?",
+    "answers": {
+      "text": "36 anos",
+      "answer_start": 236
+    }
+  },
+  {
+    "context": "Proteinose alveolar pulmonar é uma patologia rara de etiologia desconhecida. Apresenta-se o caso de um homem, de 58 anos, com história de tabagismo e exposição a poeiras de extração de pedra. Recorreu ao serviço de urgência por febre e mal estar generalizado desde o dia anterior...",
+    "question": "Qual a idade do homem com proteinose alveolar pulmonar?",
+    "answers": {
+      "text": "58 anos",
+      "answer_start": 104
+    }
+  },
+  {
+    "context": "A sífilis é uma infecção crónica sistémica causada pelo Treponema pallidum, sendo habitualmente de transmissão sexual.",
+    "question": "Qual a bactéria causadora da sífilis?",
+    "answers": {
+      "text": "Treponema pallidum",
+      "answer_start": 57
+    }
+  },
+  {
+    "context": "A necrólise epidérmica tóxica é uma doença sistémica potencialmente fatal, caraterizada por descolamento dermoepidérmico extenso e erosão das mucosas. Cerca de 95% dos casos devem-se a uma reação idiossincrática à administração de fármacos, estando frequentemente implicados os anti-inflamatórios não esteroides (AINEs).",
+    "question": "Quais os medicamentos frequentemente implicados na necrólise epidérmica tóxica?",
+    "answers": {
+      "text": "anti-inflamatórios não esteroides (AINEs)",
+      "answer_start": 247
+    }
+  },
+  {
+    "context": "A doença de Kikuchi-Fujimoto (DKF) é uma condição benigna e autolimitada de causa desconhecida, e é caracterizada por linfadenopatia cervical e febre. O diagnóstico é feito por biópsia ganglionar e o tratamento é apenas sintomático.",
+    "question": "Como é feito o diagnóstico da doença de Kikuchi-Fujimoto?",
+    "answers": {
+      "text": "biópsia ganglionar",
+      "answer_start": 154
+    }
+  }
+]
